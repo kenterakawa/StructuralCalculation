@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # ======
-# 複合材の剛性、強度の計算
+# 複合材対称積層板の剛性、強度の計算
 # 任意のレイアップの各配置角における剛性強度の計算を行なう。
 #
 # Simple code for calulating composite material stiffness and strength
@@ -9,7 +9,7 @@
 # 使い方：def layupに各物性値を直打ちしてお使いください
 # Usage: Enter variables in def layup
 #
-# Copyright (c) 2019 K.Trude
+# Copyright (c) 2019 Interstellar Technologies
 # This code is released under the MIT License.
 # http://opensource.org/licenses/mit-license.php
 # ======
@@ -21,58 +21,70 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 
-
 #read input file
 
+
+###############################################################################################################################
+####################  INPUT SECTION  ##########################################################################################
+###############################################################################################################################
+
+
 case_name = 'test' #enter case name
+
+
 if not os.path.exists(case_name):
     os.mkdir(case_name)
 
-layup_origin = np.array([0,0,0,0,0,0,0,0])    #積層構成の読込 Orientation of the fibres for each layer/ply of the laminate
+layup_origin = np.array([0,90,45,-45,-45,45,90,0])    #積層構成の読込 Orientation of the fibres for each layer/ply of the laminate
 num_layup = len(layup_origin)
 
 def layup(orientation): #物性値の読込
     return layup_origin + np.full(num_layup, orientation)
 
 #積層理論剛性パラメータ
-E1 = np.full(num_layup, 125.)       # Axial stiffness of each ply [GPa]
+E1 = np.full(num_layup, 126.1)       # Axial stiffness of each ply [GPa]
 #E1 = np.array([125,125,125])                 # (Use this instead if layer properties are not the same for all layers)
 
-E2 = np.full(num_layup, 9.)         # transverse stiffness of each ply [GPa]
+E2 = np.full(num_layup, 9.792)         # transverse stiffness of each ply [GPa]
 #E2 = np.array([16.2,16.2.16,2])                 # (Use this instead if layer properties are not the same for all layers)
 
-v12 = np.full(num_layup, 0.33)      # Poisson's ratio
+v12 = np.full(num_layup, 0.338)      # Poisson's ratio
 #v12 = np.array([0.278,0.278,0.278])             # (Use this instead if layer properties are not the same for all layers)
-v21 = (v12*E2)/E1                                # (Since the compliance matrix is symmetric, v12/E1=v21/E2)
+v21 = (v12*E2)/E1                                # (Since the compliance matrix is symmetric, v12/E1=v21/E2) 対称積層用オプション
 
-E45 = np.full(num_layup, 12.)       # (Use for Manual entry to calculate G12)
-nu_45 = np.full(num_layup, 0.31)    # (Use for Manual entry to calculate G12)
+E45 = np.full(num_layup, 12.766)       # (Use for Manual entry to calculate G12)
+nu_45 = np.full(num_layup, 0.322)    # (Use for Manual entry to calculate G12)
 G12_man = E45/2/(1+nu_45)
 
-G12 = np.full(num_layup, 4.5)       # Shear modulus [GPa]
+G12 = np.full(num_layup, 4.828)       # Shear modulus [GPa]
 #G12 = np.array([5.83,5.83,5.83])                # (Use this instead if layer properties are not the same for all layers)
 print('G12 calculated value =' + str(G12_man[0]))
 
-h0 = 0.2
-h = np.full(num_layup, h0)
-# h = np.array([h0,h0,h0,h0,h0,h0,h0,h0])                   #height of each ply [mm] 枚数を合わせる
+h0 = 0.19                                #height of each ply [mm] 枚数を合わせる
+h = np.full(num_layup, h0)             
+#h = np.array([h0,h0,h0,h0,h0,h0,h0,h0])                #height of each ply [mm] ply毎に厚みが違う場合
 
 
 #強度則パラメータ
-F_Lt = np.full(num_layup, 2700)       # 0 deg Tensile Strength of each ply
+F_Lt = np.full(num_layup, 2769.)       # 0 deg Tensile Strength of each ply
 #F_Lt = np.array([2000,2000,2000]) 
 
-F_Lc = np.full(num_layup, 680)       # 0 deg Compressive Strength of each ply
+F_Lc = np.full(num_layup, 685.)       # 0 deg Compressive Strength of each ply
 #F_Lc = np.array([2000,2000,2000]) 
 
-F_Tt = np.full(num_layup, 57.)       # 90 deg Tensile Strength of each ply
+F_Tt = np.full(num_layup, 58.26)       # 90 deg Tensile Strength of each ply
 #F_Tt = np.array([2000,2000,2000]) 
 
-F_Tc = np.full(num_layup, 130.)       # 90 deg Compressive Strength of each ply
+F_Tc = np.full(num_layup, 103.)       # 90 deg Compressive Strength of each ply
 #F_Tc = np.array([2000,2000,2000]) 
 
-F_LTs = np.full(num_layup, 88.)       # Shear Strength of each ply (45°引張試験の実測値)
+F_LTs = np.full(num_layup, 88.2)       # Shear Strength of each ply (45°引張試験の実測値)
 #F_LTs = np.array([2000,2000,2000]) 
+
+
+###############################################################################################################################
+####################  CALCULATION SECTION  ####################################################################################
+###############################################################################################################################
 
 # Looping through each layer of the laminate
 def calc_Q(orientation):
@@ -186,7 +198,6 @@ def calc_sigma(orientation): #破断応力の計算def (Tsai-Wu Failure Criterio
 
 sigma_x_t, sigma_x_c, sigma_tl, sigma_cl = calc_sigma(0.)
 
-h0 = 0.2
 h = np.full(num_layup, h0)
 # h = np.array([h0,h0,h0,h0,h0,h0,h0,h0])                   #height of each ply [mm] 枚数を合わせる
 thickness = np.sum(h)
@@ -195,8 +206,8 @@ sys.stdout = f
 
 print('Layup pattern'  + str(layup_origin))
 print('Layup Total Thickness = %.2f mm'  %(thickness))
-print('Combined Tensile Strength Ft (0 deg) = %d MPa' %(sum(sigma_tl*h)/thickness))
-print('Combined Compressive Strength Fc (0 deg)= %d MPa'  %(sum(sigma_cl*h)/thickness))
+print('Combined Tensile Strength Ft (0 deg) = %.1f MPa' %(sum(sigma_tl*h)/thickness))
+print('Combined Compressive Strength Fc (0 deg)= %.1f MPa'  %(sum(sigma_cl*h)/thickness))
 print('Combined 0 deg Elastic Modulus Ex (0 deg) = %.1f'  %(Ex0))
 print('Combined 90 deg Elastic Modulus Ey (0 deg) = %.1f'  %(Ey0))
 print('poisson ratio (0 deg) v = %.3f'  %(vxy0))
@@ -224,30 +235,21 @@ plt.figure()
 plt.rcParams['font.family'] = 'DejaVu Sans'
 plt.xlabel('Orientation [deg]')
 plt.ylabel('Stiffness [GPa]')
-plt.plot(orientation, Ex_list)
-plt.title("Orientaion - Layup Stiffness Ex")
-plt.savefig(case_name + "/Stiffness_Ex.png")
+plt.xlim(0,90)
+plt.plot(orientation, Ex_list, label="0deg Stiffness Ex")
+plt.plot(orientation, Ey_list, label="90deg Stiffness Ex")
+plt.legend(bbox_to_anchor=(1, 1), loc='upper right', borderaxespad=0, fontsize=11)
+plt.title("Orientaion - Layup Stiffness Ex, Ey")
+plt.savefig(case_name + "/Stiffness.png")
 
-plt.figure()
-plt.rcParams['font.family'] = 'DejaVu Sans'
-plt.xlabel('Orientation [deg]')
-plt.ylabel('Stiffness [GPa]')
-plt.plot(orientation, Ey_list)
-plt.title("Orientaion - Layup Stiffness Ey")
-plt.savefig(case_name + "/Stiffness_Ey.png")
-
-plt.figure()
-plt.rcParams['font.family'] = 'DejaVu Sans'
-plt.xlabel('Orientation [deg]')
-plt.ylabel('Strength [MPa]]')
-plt.plot(orientation, Total_Tensile_Strength_list)
-plt.title("Orientaion - Layup Tensile Strength")
-plt.savefig(case_name + "/Strength_Tensile.png")
 
 plt.figure()
 plt.rcParams['font.family'] = 'DejaVu Sans'
 plt.xlabel('Orientation [deg]')
 plt.ylabel('Strength [MPa]]')
-plt.plot(orientation, Total_Compressive_Strength_list)
-plt.title("Orientaion - Layup Compressive Strength")
-plt.savefig(case_name + "/Strength_Compressive.png")
+plt.xlim(0,90)
+plt.plot(orientation, Total_Tensile_Strength_list, label="Tensile Strength")
+plt.plot(orientation, Total_Compressive_Strength_list, label="Compressive Strength")
+plt.legend(bbox_to_anchor=(1, 1), loc='upper right', borderaxespad=0, fontsize=11)
+plt.title("Orientaion - Layup Strength")
+plt.savefig(case_name + "/Strength.png")
