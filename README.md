@@ -6,7 +6,7 @@
 
 # PressureVessels
 圧力容器、タンクの計算に使用するコードです。
-ASME VBPVC, VIII設計ベースになります。
+ASME BPVC, ASME VIII Div.II設計ベース。
 
 # PropellantTank
 圧力容器ですが、座屈圧縮荷重を受けるもの、構造部材としての円筒の計算に使用するコードです。
