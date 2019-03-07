@@ -219,24 +219,24 @@ if __name__ == "__main__":
 	#諸元入力ゾーン==========================================================================================================================
 
 
-	# 軌道情報 源泉: MOMO2_Rev2_dynamics_1st.csv
-	burntime = 120 # 燃焼時間 秒
+	# 軌道情報 MOMO dynamics, ZERO Phase6E軌道設計 参考
+	burntime = 163 # 燃焼時間 秒
 	rating_label = ["LiftOff"	, "MaxQ"	, "MaxDrag"	, "MECO"	]
-	rating_time  = [0		, 71		, 75		, 119		] # 評定となる時刻 秒
-	thrust       = [13324		, 15355		, 15317		, 13132		] # 推力 N
+	rating_time  = [0		, 55		, 60		, 162		] # 評定となる時刻 秒
+	thrust       = [500400		, 570600		, 570600		, 571000		] # 推力 N
 	q            = [6.442E+00	, 2.6755E+04	, 2.6148E+04	, 1.686E+03	] # 動圧 Pa
 	max_gimbal_angle = 8 * np.pi/180 # 最大舵角[rad]
 	T_g = [v*np.sin(max_gimbal_angle) for v in thrust]# ジンバルによる横推力 N
 
 	# 空力諸元 源泉:MOMO初号機軌道設計10_Missile DATCOMでの結果.pdf
-	dia  = 504.0e-3 # 機体直径 m
+	dia  = 2.0 # 機体直径 m
 	C_A  =    0.746 # 軸力係数 ND
 	C_N  =      2.1 # 法線力係数 ND
-	x_CP =     5404 # ノーズからの風圧中心位置 mm
+	x_CP =     6600 # ノーズからの風圧中心位置 mm
 	
 	savefig_flag = True # 出力を保存するかどうか
 	savepdf_flag = True # PDF出力するかどうか
-	save_name = u"MOMO3_rev2_荷重条件"
+	save_name = u"ZERO_Ph6F_NP_Case1"
 	
 	if(savepdf_flag):pdf = PdfPages(save_name + u"_plot.pdf")
 	sys.stdout = sys.__stdout__
@@ -244,16 +244,16 @@ if __name__ == "__main__":
 	print(u"コンポーネント設定開始")
 	# === コンポーネント ====
 	# comp        = Component(length_mm, weight_kg, prop_init_kg, prop_end_kg, burntime_sec, press_MPa)
-	nose          = Component(1096, 10, 0, 0, burntime, 0.0)
-	tank_He_upper = Component(600, 30, 2, 0, burntime, 0.0)
-	tank_He_middle = Component(601, 36, 2, 0, burntime, 0.0)
-	tank_He_lower = Component(599, 36, 2, 0, burntime, 0.0)
-	tank_He_EA = Component(601, 30, 0, 0, burntime, 0.0)
-	tank_EA       = Component(2108, 45, 345, 0, burntime, 2.7)
-	tank_inter    = Component(500, 13, 0, 0, burntime, 0.0)
-	tank_LOX      = Component(2220, 46, 508, 5, burntime, 2.9)
-	fin           = Component(580, 39, 0, 0, burntime, 0.0)
-	engine        = Component(979, 48, 0, 0, burntime, 0.0)
+	nose          = Component(3000, 235, 0, 0, burntime, 0.0)
+	tank_2nd_LOx	= Component(500, 142, 3967, 3967, burntime, 0.5)
+	tank_2nd_inter = Component(2180, 364, 0, 0, burntime, 0.0)
+	tank_2nd_fuel = Component(900, 80, 1853, 1853, burntime, 0.5)
+	tank_interstage = Component(3000, 300, 0, 0, burntime, 0.0)
+	tank_1st_LOx       = Component(5400, 686, 19477, 109, burntime, 0.5)
+	tank_1st_inter    = Component(1500, 2457, 0, 0, burntime, 0.0)
+	tank_1st_fuel      = Component(3800, 517, 10223, 97, burntime, 0.5)
+	fin          = Component(1000, 200, 0, 0, burntime, 0.0)
+	engine           = Component(1000, 1080, 0, 0, burntime, 0.0)
 	
 	# === 曲げモーメントの曲線フィッティング ===
 	fitting_flag = False # 関数フィッティングするかどうか
@@ -270,13 +270,13 @@ if __name__ == "__main__":
 	# === コンポーネントをRocketクラスにAdd ====
 	rocket = Rocket(burntime, dia)
 	rocket.add_component(nose)
-	rocket.add_component(tank_He_upper)
-	rocket.add_component(tank_He_middle)
-	rocket.add_component(tank_He_lower)
-	rocket.add_component(tank_He_EA)
-	rocket.add_component(tank_EA)
-	rocket.add_component(tank_inter)
-	rocket.add_component(tank_LOX)
+	rocket.add_component(tank_2nd_LOx)
+	rocket.add_component(tank_2nd_inter)
+	rocket.add_component(tank_2nd_fuel)
+	rocket.add_component(tank_interstage)
+	rocket.add_component(tank_1st_LOx)
+	rocket.add_component(tank_1st_inter)
+	rocket.add_component(tank_1st_fuel)
 	rocket.add_component(fin)
 	rocket.add_component(engine)
 	
@@ -538,19 +538,19 @@ if __name__ == "__main__":
 	print(u"")
 	print(u"==== コンポーネント ====")
 	print(u"[長さ mm,\tドライ重量 kg,\t推進剤重量 kg,\t推進剤空時 kg]")
-	print(u"ノーズ :\t", end="")
+	print(u"fairing :\t", end="")
 	nose.show()
-	print(u"Heタンク上部 :\t", end="")
-	tank_He_upper.show()
-	print(u"Heタンク下部 :\t", end="")
-	tank_He_lower.show()
-	print(u"EAタンク :\t", end="")
-	tank_EA.show()
-	print(u"LOXタンク :\t", end="")
-	tank_LOX.show()
-	print(u"フィン部 :\t", end="")
+	print(u"2nd_LOx_tank :\t", end="")
+	tank_2nd_LOx.show()
+	print(u"2nd_fuel_tank :\t", end="")
+	tank_2nd_fuel.show()
+	print(u"1st_LOx_tank :\t", end="")
+	tank_1st_LOx.show()
+	print(u"1st_fuel_tank :\t", end="")
+	tank_1st_fuel.show()
+	print(u"fin :\t", end="")
 	fin.show()
-	print(u"エンジン部 :\t", end="")
+	print(u"engine :\t", end="")
 	engine.show()
 	
 	# 一端ファイルに出力させたものを標準出力に呼び出している
