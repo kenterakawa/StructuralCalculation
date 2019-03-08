@@ -44,12 +44,13 @@ class Tank:
         self.diameter = setting.getfloat("タンク", "直径[m]")
         self.thickness = setting.getfloat("タンク", "タンク厚み[mm]")
         self.press = setting.getfloat("タンク", "内圧[MPa]")
-        self.length = setting.getfloat("タンク", "NP平行部長さ[m]")
+        self.length = setting.getfloat("タンク", "Fuel平行部長さ[m]")
         self.aspect = setting.getfloat("タンク", "タンク鏡板縦横比")
-        self.fueldensity = setting.getfloat("タンク", "NP密度[kg/m3]") #追加
+        self.fueldensity = setting.getfloat("タンク", "Fuel密度[kg/m3]") #追加
         self.loxdensity = setting.getfloat("タンク", "LOx密度[kg/m3]") #追加
         self.obyf = setting.getfloat("タンク", "質量酸燃比O/F") #追加
         self.propflowrate = setting.getfloat("タンク", "推進剤質量流量 [kg/s]") #追加
+        self.hepressure = setting.getfloat("タンク", "Heガスボンベ圧力[MPa]") #追加
         self.material_name = setting.get("材料", "材料名")
         self.rupture = setting.getfloat("材料", "引張破断応力[MPa]")
         self.proof = setting.getfloat("材料", "耐力[MPa]")
@@ -71,17 +72,19 @@ class Tank:
 
         
 
-        # (追加) NP容量の計算
+        # (追加) Fuel容量の計算
         self.content_volume_head = 4 / 3 * np.pi * ((self.radius - self.thickness/1000)**3 * self.aspect)
         self.content_volume_body = np.pi * (self.radius - self.thickness/1000)**2 * self.length
         self.content_volume = self.content_volume_head + self.content_volume_body
-        self.content_weight = self.content_volume * self.fueldensity 
+        self.content_weight = self.content_volume * self.fueldensity
+        self.hefuel_volume = self.content_volume*self.press/self.hepressure
 
         # (追加) LOx容量の計算 (肉厚、径はNPタンクと同一と仮定)
         self.content_loxweight = self.content_weight * self.obyf
         self.content_loxvolume = self.content_loxweight / self.loxdensity
         self.content_volume_loxbody =  self.content_loxvolume - self.content_volume_head
         self.loxlength =  self.content_volume_loxbody / (np.pi * (self.radius - self.thickness/1000)**2)
+        self.helox_volume = self.content_loxvolume*self.press/self.hepressure
 
         # (追加) LOxタンク重量の計算 (肉厚、径はNPタンクと同一と仮定)
         self.loxvolume_straight = np.pi * (self.radius**2 - (self.radius - self.thickness/1000)**2) * self.loxlength
@@ -127,15 +130,16 @@ class Tank:
     def display(self):
         #NPタンク諸元
         print("タンク鏡重量 :\t\t%.1f [kg]" %(self.volume_hemisphere * self.density)) #add
-        print("NPタンク重量 :\t\t%.1f [kg]" %(self.weight))
-        print("NPタンク内圧 :\t\t%.1f [MPa]" % (self.press))
-        print("NPタンク直径 :\t\t%d [mm]" % (self.diameter * 1000))
-        print("NPタンク肉厚 :\t\t%.1f [mm]" % (self.thickness))
-        print("NPタンク平行部長さ :\t%.1f [m]" % (self.length))
-        print("NPタンク鏡部容積 :\t%.1f [m3]" % (self.content_volume_head)) #add
-        print("NPタンク平行部容積 :\t%.1f [m3]" % (self.content_volume_body)) #add
-        print("NPタンク総容積: \t\t%.3f [m3]" % (self.content_volume))
-        print("NP重量: \t\t%.1f [kg]" % (self.content_weight))
+        print("Fuelタンク重量 :\t\t%.1f [kg]" %(self.weight))
+        print("Fuelタンク内圧 :\t\t%.1f [MPa]" % (self.press))
+        print("Fuelタンク直径 :\t\t%d [mm]" % (self.diameter * 1000))
+        print("Fuelタンク肉厚 :\t\t%.1f [mm]" % (self.thickness))
+        print("Fuelタンク平行部長さ :\t%.1f [m]" % (self.length))
+        print("Fuelタンク鏡部容積 :\t%.1f [m3]" % (self.content_volume_head)) #add
+        print("Fuelタンク平行部容積 :\t%.1f [m3]" % (self.content_volume_body)) #add
+        print("Fuelタンク総容積: \t\t%.3f [m3]" % (self.content_volume))
+        print("Fuel重量: \t\t%.1f [kg]" % (self.content_weight))
+        print("Fuel用He必要体積: \t\t%.3f [m3]" % (self.hefuel_volume))
         print()
         #LOxタンク諸元(自動計算)
         print("LOxタンク重量 :\t\t%.1f [kg]" %(self.loxweight))
@@ -144,6 +148,7 @@ class Tank:
         print("LOxタンク平行部容積 :\t%.1f [m3]" % (self.content_volume_loxbody)) #add
         print("LOxタンク総容積: \t\t%.3f [m3]" % (self.content_loxvolume))
         print("LOx重量: \t\t%.1f [kg]" % (self.content_loxweight))
+        print("LOx用He必要体積: \t\t%.3f [m3]" % (self.helox_volume))
         print()
         print("タンク総重量: \t\t%.1f [kg]" % (self.totalweight)) 
         print("推進剤総重量: \t\t%.1f [kg]" % (self.content_totalweight))
@@ -173,16 +178,17 @@ class Tank:
     def print(self):
         with open("tankout_S1.out","w") as output:
             print("タンク鏡重量:\t%.1f [kg]" %(self.volume_hemisphere * self.density),file=output) #add
-            print("NPタンク重量:\t%.1f [kg]" %(self.weight),file=output)
-            print("NPタンク内圧:\t%.1f [MPa]" % (self.press),file=output)
-            print("NPタンク直径:\t%d [mm]" % (self.diameter * 1000),file=output)
-            print("NPタンク肉厚:\t%.1f [mm]" % (self.thickness),file=output)
-            print("NPタンク平行部長さ:\t%.2f [m]" % (self.length),file=output)
-            print("NPタンク鏡部容積:\t%.2f [m3]" % (self.content_volume_head),file=output) #add
-            print("NPタンク平行部容積:\t%.2f [m3]" % (self.content_volume_body),file=output) #add
-            print("NPタンク平行部重量:\t%.1f [kg]" % (self.volume_straight * self.density),file=output) #add
-            print("NPタンク容積: \t%.3f [m3]" % (self.content_volume),file=output)
-            print("NP重量: \t%.1f [kg]" % (self.content_weight),file=output)
+            print("Fuelタンク重量:\t%.1f [kg]" %(self.weight),file=output)
+            print("Fuelタンク内圧:\t%.1f [MPa]" % (self.press),file=output)
+            print("Fuelタンク直径:\t%d [mm]" % (self.diameter * 1000),file=output)
+            print("Fuelタンク肉厚:\t%.1f [mm]" % (self.thickness),file=output)
+            print("Fuelタンク平行部長さ:\t%.2f [m]" % (self.length),file=output)
+            print("Fuelタンク鏡部容積:\t%.2f [m3]" % (self.content_volume_head),file=output) #add
+            print("Fuelタンク平行部容積:\t%.2f [m3]" % (self.content_volume_body),file=output) #add
+            print("Fuelタンク平行部重量:\t%.1f [kg]" % (self.volume_straight * self.density),file=output) #add
+            print("Fuelタンク容積: \t%.3f [m3]" % (self.content_volume),file=output)
+            print("Fuel重量: \t%.1f [kg]" % (self.content_weight),file=output)
+            print("Fuel用He必要体積: \t\t%.3f [m3]" % (self.hefuel_volume),file=output)
             print()
             #LOxタンク諸元(自動計算)
             print("LOxタンク重量:\t%.1f [kg]" %(self.loxweight),file=output)
@@ -192,6 +198,7 @@ class Tank:
             print("LOxタンク平行部重量:\t%.1f [kg]" % (self.loxvolume_straight * self.density),file=output) #add
             print("LOxタンク容積: \t%.3f [m3]" % (self.content_loxvolume),file=output)
             print("LOx重量: \t%.1f [kg]" % (self.content_loxweight),file=output)
+            print("LOx用He必要体積: \t\t%.3f [m3]" % (self.hefuel_volume),file=output)
             print()
             print("タンク総重量: \t%.1f [kg]" % (self.totalweight),file=output)
             print("推進剤総重量: \t%.1f [kg]" % (self.content_totalweight),file=output)
